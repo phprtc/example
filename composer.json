@@ -1,0 +1,36 @@
+{
+	"name": "phprtc/phprtc",
+	"description": "PHP Realtime Communication",
+	"type": "project",
+	"require-dev": {
+		"phpstan/phpstan": "^1.2",
+		"phpunit/phpunit": "^9.5",
+		"swoole/ide-helper": "^4.8",
+		"phprtc/watcher": "^0.1.0"
+	},
+	"license": "MIT",
+	"autoload": {
+		"psr-4": {
+			"App\\": "app/"
+		}
+	},
+	"authors": [
+		{
+			"name": "ahmard",
+			"email": "ahmard.mu@gmail.com"
+		}
+	],
+	"require": {
+		"guzzlehttp/psr7": "^2.1",
+		"nette/utils": "^3.2",
+		"symfony/var-dumper": "^5.3",
+		"phprtc/contracts": "dev-master",
+		"phprtc/http-router": "dev-master",
+		"phprtc/utils": "dev-master",
+		"phprtc/server": "dev-master",
+		"phprtc/websocket": "dev-master",
+		"phprtc/http": "dev-master",
+		"phprtc/console": "dev-main",
+		"vlucas/phpdotenv": "^5.4"
+	}
+}

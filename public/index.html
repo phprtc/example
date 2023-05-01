@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Live Chat</title>
+    <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
+    <script src="/assets/js/phprtc-client.js"></script>
+    <style>
+        .sender {
+            font-weight: bold;
+            padding: 2px;
+        }
+
+        .messages-container {
+            max-width: 95%;
+            min-width: 25%;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+
+<div class="m-3" id="block-room">
+    <div class="row d-flex justify-content-end">
+        <div class="col-md-3">
+            <div class="card" id="fieldset-room">
+                <div class="card-header">Choose Room</div>
+                <form method="post" id="form-choose-room" class="m-3">
+                    <div class="">
+                        <label for="username">Username</label>
+                        <input id="username" name="username" value="Ahmard" placeholder="Username" class="form-control"
+                               required>
+                    </div>
+                    <div class="mt-1">
+                        <label for="room">Room</label>
+                        <input id="room" name="room" value="phprtc" placeholder="Room" class="form-control" required>
+                    </div>
+                    <div class="text-end mt-1">
+                        <button class="btn btn-primary btn-sm" type="submit">Enter Room</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="m-3">
+    <div class="row d-flex justify-content-center mt-3" id="block-message" style="display: none!important;">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">Messaging</div>
+                <div class="card-body">
+                    <div id="messages-container" class="messages-container" style="height: 500px!important;">
+                        <div class="list-group list-group-flush mb-3" id="chat-messages"
+                             style="height: 150px!important;"></div>
+                    </div>
+
+                    <form method="post" id="form-send-message">
+                        <label for="message">Message</label>
+                        <textarea rows="3" id="message" class="form-control" name="message"></textarea>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-primary btn-sm" type="submit">Send Message</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+
+    const initRoom = function (roomName) {
+        const containerMessages = document.getElementById('messages-container')
+        const elChatMessages = document.getElementById('chat-messages');
+        const websocket = RTC_Websocket.create(`${protocol}://${window.location.host}/ws/chat`, [], {
+            username: document.querySelector('input[name="username"]').value
+        });
+
+        const room = websocket.joinRoom(roomName)
+        const universal = websocket.joinRoom('universal')
+
+        const displayMessage = function (event) {
+            const div = document.createElement('div');
+            div.innerHTML = event.data.message;
+            elChatMessages.append(div)
+
+            containerMessages.scroll(0, containerMessages.scrollHeight);
+        }
+
+        websocket.setReconnectionInterval(5000);
+
+        websocket.onOpen(() => {
+            console.log('ws connection opened')
+        });
+
+        websocket.onClose(() => console.log('ws connection closed'));
+        websocket.onMessage(message => console.log(message));
+
+        const processMessage = function (event, customMessage = null) {
+            const user_name = event.meta.user_info
+                ? event.meta.user_info.username
+                : 'You';
+
+            event.data.message = makeMessage(user_name, event.data.message)
+            displayMessage(event)
+        }
+
+        const makeMessage = function (user, message) {
+            const date = new Date();
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-start mb-1">
+                    <div class="ms-2 me-auto">
+                      <div class="fw-bold">${user}</div>
+                      ${message}
+                    </div>
+                    <small class="fst-italic">${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}</small>
+                </div>
+            `
+        }
+
+        room.on('welcome', message => {
+            const div = document.createElement('div');
+            div.innerHTML = message.data.message;
+            window.scroll(0, elChatMessages.scrollHeight);
+            elChatMessages.append(div)
+        });
+
+        room.on('joined', processMessage);
+        room.on('user_left', e => processMessage(e, 'left this room'));
+        room.on('user_joined', e => processMessage(e, 'joined this room'));
+
+        room.on('message', function (event) {
+            const user_name = event.sender.info
+                ? event.sender.info.username
+                : 'You';
+
+            event.data.message = makeMessage(user_name, event.data.message)
+            displayMessage(event)
+        });
+
+        room.on('conn.rejected', () => {
+            room.close()
+        });
+
+        document.getElementById('block-room').style.display = 'none'
+        document.getElementById('block-message').style.display = 'block'
+
+        document.getElementById('form-send-message').onsubmit = function (e) {
+            e.preventDefault();
+            const textarea = this.querySelector('textarea')
+            const message = textarea.value
+            textarea.value = ''
+
+            room.send(message);
+        }
+    }
+
+    document.getElementById('form-choose-room').onsubmit = function (e) {
+        e.preventDefault();
+        const input = this.querySelector('input[name="room"]')
+        initRoom(input.value)
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+GET http://localhost:9600
+Accept: application/json
+
+###
+GET http://localhost:9600/json
+Accept: application/json
+
+###
+GET http://localhost:9600/html
+Accept: application/json
+
+###
+GET http://localhost:9600/cloksure
+Accept: application/json
+
+###
