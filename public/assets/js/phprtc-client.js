@@ -355,16 +355,16 @@ var RTC_Websocket = /** @class */ (function () {
     /**
      * Send message to websocket server
      * @param event {any} event name
-     * @param message {array|object|int|float|string} message
+     * @param data {array|object|int|float|string} message
      * @param receiver {LooseObject}
      * @return Promise
      */
-    RTC_Websocket.prototype.send = function (event, message, receiver) {
+    RTC_Websocket.prototype.send = function (event, data, receiver) {
         var _this = this;
         if (receiver === void 0) { receiver = {}; }
         event = JSON.stringify({
             event: event,
-            message: message,
+            data: data,
             receiver: receiver,
             time: new Date().getTime(),
         });
@@ -465,7 +465,10 @@ var RTC_Websocket = /** @class */ (function () {
             }
             // Ping pong
             _this.pingPongIntervalTimer = setInterval(function () {
-                _this.send('ping', { message: 'ping' });
+                _this.send('ping', { message: 'ping' }, {
+                    type: 'system',
+                    id: 'system'
+                });
             }, _this.pingPongInterval);
             _this.changeState('open', args);
         });
