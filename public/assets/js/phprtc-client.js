@@ -70,8 +70,8 @@ var RTC_Room = /** @class */ (function () {
         this.on('all_events', listener);
         return this;
     };
-    RTC_Room.prototype.send = function (data) {
-        return this.connection.send('message', data, {
+    RTC_Room.prototype.send = function (event, data) {
+        return this.connection.send(event, data, {
             type: 'room',
             id: this.name,
         });

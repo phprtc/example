@@ -19,6 +19,29 @@
             min-width: 25%;
             overflow-y: scroll;
         }
+
+        .typing:after {
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: bottom;
+            -webkit-animation: ellipsis steps(5, end) 1000ms infinite;
+            animation: ellipsis steps(5, end) 1000ms infinite;
+            content: "\2026";
+            /* ascii code for the ellipsis character */
+            width: 0;
+        }
+
+        @keyframes ellipsis {
+            to {
+                width: 40px;
+            }
+        }
+
+        @-webkit-keyframes ellipsis {
+            to {
+                width: 40px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -48,15 +71,20 @@
 </div>
 
 <div class="m-3">
-    <div class="row d-flex justify-content-center mt-3" id="block-message" style="display: none!important;">
+    <div class="row d-flex justify-content-center mt-3" id="block-message" style="display: block!important;">
         <div class="col-md-5">
             <div class="card">
-                <div class="card-header">Messaging</div>
+                <div class="card-header d-flex justify-content-between">
+                    <div>Messaging</div>
+                    <div id="connectivity-status"></div>
+                </div>
                 <div class="card-body">
                     <div id="messages-container" class="messages-container" style="height: 500px!important;">
                         <div class="list-group list-group-flush mb-3" id="chat-messages"
                              style="height: 150px!important;"></div>
                     </div>
+
+                    <div class="typing-status d-flex justify-content-start my-2" id="typing-status"></div>
 
                     <form method="post" id="form-send-message">
                         <label for="message">Message</label>
@@ -73,11 +101,51 @@
 
 
 <script>
+
+    // document.getElementById('block-room').style.display = 'none'
+    // document.getElementById('block-message').style.display = 'block'
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const setConnectivityStatus = function (status) {
+        const elConnectivityStatus = document.getElementById('connectivity-status')
+        switch (status) {
+            case 'connecting':
+            case 'reconnecting':
+                elConnectivityStatus.innerHTML = `
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="text-primary">${status}</span>
+                `
+                break;
+            case 'connected':
+                elConnectivityStatus.innerHTML = `<span class="badge text-bg-success">connected</span>`
+                break;
+            case 'error':
+            case 'disconnected':
+                elConnectivityStatus.innerHTML = `<span class="badge text-bg-danger">${status}</span>`
+                break;
+        }
+    }
+
+    const setTypingStatus = function (status, connId) {
+        const elTypingStatus = document.getElementById('typing-status')
+        switch (status) {
+            case 'typing':
+                elTypingStatus.innerHTML = `
+                    <small class="text-primary ts ts-${connId}"><i>Ahmard is typing</i><span class="typing"></span></small>
+                `;
+                break;
+            case 'stop':
+                document.querySelector(`.ts.ts-${connId}`)?.remove()
+        }
+    }
 
     const initRoom = function (roomName) {
         const containerMessages = document.getElementById('messages-container')
         const elChatMessages = document.getElementById('chat-messages');
+
+        setConnectivityStatus('connecting');
+
         const websocket = RTC_Websocket.create(`${protocol}://${window.location.host}/ws/chat`, [], {
             username: document.querySelector('input[name="username"]').value
         });
@@ -93,13 +161,28 @@
             containerMessages.scroll(0, containerMessages.scrollHeight);
         }
 
-        websocket.setReconnectionInterval(5000);
+        websocket.setReconnectionInterval(2000);
 
         websocket.onOpen(() => {
+            setConnectivityStatus('connected')
             console.log('ws connection opened')
         });
 
-        websocket.onClose(() => console.log('ws connection closed'));
+        websocket.onReconnecting(() => {
+            setConnectivityStatus('reconnecting')
+            console.log('recovering ws connection...')
+        });
+
+        websocket.onClose(() => {
+            console.log('error occurred with ws connection')
+            setConnectivityStatus('error')
+        });
+
+        websocket.onClose(() => {
+            console.log('ws connection closed')
+            setConnectivityStatus('disconnected')
+        });
+
         websocket.onMessage(message => console.log(message));
 
         const processMessage = function (event, customMessage = null) {
@@ -135,6 +218,12 @@
         room.on('user_left', e => processMessage(e, 'left this room'));
         room.on('user_joined', e => processMessage(e, 'joined this room'));
 
+        room.on('typing', event => {
+            setTypingStatus('stop', event.sender.id)
+            setTypingStatus('typing', event.sender.id)
+            setTimeout(() => setTypingStatus('stop', event.sender.id), 1000)
+        });
+
         room.on('message', function (event) {
             const user_name = event.sender.info
                 ? event.sender.info.username
@@ -151,13 +240,17 @@
         document.getElementById('block-room').style.display = 'none'
         document.getElementById('block-message').style.display = 'block'
 
+        document.getElementById('message').oninput = function (e) {
+            room.send('typing', '')
+        }
+
         document.getElementById('form-send-message').onsubmit = function (e) {
             e.preventDefault();
             const textarea = this.querySelector('textarea')
             const message = textarea.value
             textarea.value = ''
 
-            room.send(message);
+            room.send('message', message);
         }
     }
 
