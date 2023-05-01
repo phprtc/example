@@ -53,15 +53,15 @@
                 <div class="card-header">Choose Room</div>
                 <form method="post" id="form-choose-room" class="m-3">
                     <div class="">
-                        <label for="username">Username</label>
-                        <input id="username" name="username" value="" placeholder="Username" class="form-control"
+                        <label for="username" class="text-muted">Username</label>
+                        <input id="username" name="username" value="" class="form-control"
                                required>
                     </div>
-                    <div class="mt-1">
-                        <label for="room">Room</label>
-                        <input id="room" name="room" value="phprtc" placeholder="Room" class="form-control" required>
+                    <div class="mt-2">
+                        <label for="room" class="text-muted">Room</label>
+                        <input id="room" name="room" value="phprtc" class="form-control" required>
                     </div>
-                    <div class="text-end mt-1">
+                    <div class="text-end mt-2">
                         <button class="btn btn-primary btn-sm" type="submit">Enter Room</button>
                     </div>
                 </form>
@@ -71,7 +71,7 @@
 </div>
 
 <div class="m-3">
-    <div class="row d-flex justify-content-center mt-3" id="block-message" style="display: block!important;">
+    <div class="row d-flex justify-content-center mt-3" id="block-message" style="display: none!important;">
         <div class="col-md-5">
             <div class="card">
                 <div class="card-header d-flex justify-content-between">
@@ -113,8 +113,6 @@
         return null;
     }
 
-    // document.getElementById('block-room').style.display = 'none'
-    // document.getElementById('block-message').style.display = 'block'
     const setConnectivityStatus = function (status) {
         const elConnectivityStatus = document.getElementById('connectivity-status')
         switch (status) {
