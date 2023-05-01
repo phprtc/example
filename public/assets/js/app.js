@@ -48,7 +48,7 @@ const setTypingStatus = function (status, username, connId) {
 const processMessage = function (event, customMessage = null) {
     const user_name = event.meta.user_info
         ? event.meta.user_info.username
-        : 'You';
+        : (customMessage ? '' : 'You');
 
     if (customMessage) {
         event.data.message = makeMessage(user_name, customMessage, true)
@@ -89,7 +89,7 @@ const makeMessage = function (user, message, isSystemMessage = false) {
 const initRoom = function (roomName) {
     setConnectivityStatus('connecting');
 
-    document.getElementById('messages-container').style.height = ((window.outerHeight/100) * 50) + 'px'
+    document.getElementById('messages-container').style.height = ((window.outerHeight / 100) * 50) + 'px'
 
     const websocket = RTC_Websocket.create(`${getCookie('ws_client_url')}/ws/chat`, [], {
         username: document.querySelector('input[name="username"]').value
@@ -115,7 +115,8 @@ const initRoom = function (roomName) {
 
     websocket.onMessage(message => console.log(message));
 
-    room.on('welcome', processMessage);
+    websocket.onEvent('welcome', e => processMessage(e, e.data.message));
+
     room.on('joined', e => processMessage(e, 'room joined successfully'));
     room.on('user_left', e => processMessage(e, 'left this room'));
     room.on('user_joined', e => processMessage(e, 'joined this room'));
