@@ -16,11 +16,6 @@ class ChatWebsocketHandler extends WebsocketHandler
     protected Console $console;
     private string $startDate;
 
-    /**
-     * @var RoomInterface[] $rooms
-     */
-    private array $rooms;
-
 
     public function __construct(ServerInterface $server, int $size = 2048)
     {

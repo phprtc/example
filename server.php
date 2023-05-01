@@ -11,7 +11,7 @@ require __DIR__ . '/vendor/autoload.php';
 $env = Dotenv::createImmutable(__DIR__)->load();
 
 try {
-    $server = Server::create($env['SERVER_HOST'], $env['SERVER_PORT'])
+    $server = Server::create(strval($env['SERVER_HOST']), intval($env['SERVER_PORT']))
         ->setDocumentRoot(__DIR__ . '/public')
         ->setPidFile(__DIR__ . '/.pid')
         ->setHttpKernel(HttpKernel::class)
@@ -19,7 +19,7 @@ try {
         ->onStart(function (\Swoole\Http\Server $server) use ($env) {
 
             // Monitor filesystem changes for hot code reloading
-            if ('development' == strtolower($env['APP_ENV'])) {
+            if ('development' == strtolower(strval($env['APP_ENV']))) {
                 Watcher::create()
                     ->addPath(__DIR__ . '/app')
                     ->addPath(__DIR__ . '/routes')

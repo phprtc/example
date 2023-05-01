@@ -32,5 +32,9 @@
 		"phprtc/http": "dev-master",
 		"phprtc/console": "dev-main",
 		"vlucas/phpdotenv": "^5.4"
+	},
+	"scripts": {
+		"analyse": "phpstan analyse",
+		"test": "phpunit"
 	}
 }

@@ -13,7 +13,7 @@ class MainController extends Controller
     public function __construct(RequestInterface $request)
     {
         parent::__construct($request);
-        $this->htmlCode = file_get_contents(dirname(__DIR__, 3) . '/public/index.html');
+        $this->htmlCode = strval(file_get_contents(dirname(__DIR__, 3) . '/public/index.html'));
     }
 
     public function index(): void
