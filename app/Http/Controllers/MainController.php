@@ -18,6 +18,7 @@ class MainController extends Controller
 
     public function index(): void
     {
+        $this->response->cookie('ws_client_url', $_ENV['WS_CLIENT_URL']);
         $this->response->html($this->htmlCode);
     }
 }

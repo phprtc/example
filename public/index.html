@@ -101,10 +101,20 @@
 
 
 <script>
+    function getCookie(name) {
+        const cookieArr = document.cookie.split(";");
+        for (let i = 0; i < cookieArr.length; i++) {
+            let cookiePair = cookieArr[i].split("=");
+            if (name === cookiePair[0].trim()) {
+                return decodeURIComponent(cookiePair[1]);
+            }
+        }
+
+        return null;
+    }
 
     // document.getElementById('block-room').style.display = 'none'
     // document.getElementById('block-message').style.display = 'block'
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const setConnectivityStatus = function (status) {
         const elConnectivityStatus = document.getElementById('connectivity-status')
         switch (status) {
@@ -146,7 +156,7 @@
 
         setConnectivityStatus('connecting');
 
-        const websocket = RTC_Websocket.create(`${protocol}://${window.location.host}/ws/chat`, [], {
+        const websocket = RTC_Websocket.create(`${getCookie('ws_client_url')}/ws/chat`, [], {
             username: document.querySelector('input[name="username"]').value
         });
 
