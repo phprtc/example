@@ -97,11 +97,12 @@ var RTC_Websocket = /** @class */ (function () {
         this.wsUri = wsUri;
         this.options = options;
         this.user_info = user_info;
-        this.reconnectionInterval = 1000;
+        this.reconnectionInterval = 5000;
         this.connectionState = 'standby';
         this.willReconnect = true;
         this.defaultAuthToken = null;
         this.rooms = [];
+        this.pingPongInterval = 20000;
         this.eventEmitter = new RTC_EventEmitter();
         // HANDLE MESSAGE/EVENT DISPATCH WHEN DOM FINISHED LOADING
         // Inspect messages and dispatch event
@@ -205,23 +206,16 @@ var RTC_Websocket = /** @class */ (function () {
         }
         return null;
     };
+    RTC_Websocket.prototype.setPingPongInterval = function (ms) {
+        this.pingPongInterval = ms;
+        return this;
+    };
     /**
      * This event fires when message is received
      * @param listener
      */
     RTC_Websocket.prototype.onMessage = function (listener) {
-        this.eventEmitter.on('message', function (e) {
-            var event = JSON.parse(e.data);
-            // User Info needs double parsing
-            if (event.sender.info) {
-                event.sender.info = JSON.parse(event.sender.info);
-            }
-            // User Info needs double parsing
-            if (event.meta && event.meta.user_info) {
-                event.meta.user_info = JSON.parse(event.meta.user_info);
-            }
-            listener(event);
-        });
+        this.eventEmitter.on('message', listener);
         return this;
     };
     ;
@@ -354,6 +348,7 @@ var RTC_Websocket = /** @class */ (function () {
         this.willReconnect = false;
         this.closeConnection(false);
         clearTimeout(this.reconnectionTimeout);
+        this.clearPingPongInterval();
         this.eventEmitter.dispatch('custom.disconnect');
     };
     ;
@@ -405,6 +400,9 @@ var RTC_Websocket = /** @class */ (function () {
         console.log(message);
     };
     ;
+    RTC_Websocket.prototype.clearPingPongInterval = function () {
+        clearInterval(this.pingPongIntervalTimer);
+    };
     RTC_Websocket.prototype.changeState = function (stateName, event) {
         this.connectionState = stateName;
         if ('close' === stateName && this.willReconnect) {
@@ -422,6 +420,22 @@ var RTC_Websocket = /** @class */ (function () {
         this.websocket.close();
     };
     ;
+    RTC_Websocket.prototype.closeNativeWebsocketConnection = function () {
+        var _this = this;
+        if (this.websocket) {
+            if (this.websocket.readyState === WebSocket.OPEN) {
+                this.websocket.close();
+            }
+            if (this.websocket.readyState === WebSocket.CONNECTING) {
+                var interval_1 = setInterval(function () {
+                    if (_this.websocket.readyState === WebSocket.OPEN) {
+                        _this.websocket.close();
+                        clearInterval(interval_1);
+                    }
+                }, 250);
+            }
+        }
+    };
     RTC_Websocket.prototype.createSocket = function (isReconnecting) {
         var _this = this;
         if (isReconnecting === void 0) { isReconnecting = false; }
@@ -436,6 +450,7 @@ var RTC_Websocket = /** @class */ (function () {
         if (this.wsUri.indexOf('ws://') === -1 && this.wsUri.indexOf('wss://') === -1) {
             this.wsUri = 'ws://' + window.location.host + this.wsUri;
         }
+        this.closeNativeWebsocketConnection();
         this.websocket = new WebSocket(this.wsUri, []);
         this.websocket.addEventListener('open', function () {
             var args = [];
@@ -448,9 +463,25 @@ var RTC_Websocket = /** @class */ (function () {
             if ('reconnecting' === _this.connectionState) {
                 _this.eventEmitter.dispatch('reconnect');
             }
+            // Ping pong
+            _this.pingPongIntervalTimer = setInterval(function () {
+                _this.send('ping', { message: 'ping' });
+            }, _this.pingPongInterval);
             _this.changeState('open', args);
         });
-        this.websocket.addEventListener('message', function (event) {
+        this.websocket.addEventListener('message', function (e) {
+            var event = JSON.parse(e.data);
+            if (event.event === 'pong') {
+                return;
+            }
+            // User Info needs double parsing
+            if (event.sender.info) {
+                event.sender.info = JSON.parse(event.sender.info);
+            }
+            // User Info needs double parsing
+            if (event.meta && event.meta.user_info) {
+                event.meta.user_info = JSON.parse(event.meta.user_info);
+            }
             _this.eventEmitter.dispatch('message', [event]);
         });
         this.websocket.addEventListener('close', function () {
@@ -458,6 +489,7 @@ var RTC_Websocket = /** @class */ (function () {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
+            _this.clearPingPongInterval();
             _this.changeState('close', args);
         });
         this.websocket.addEventListener('error', function () {

@@ -98,8 +98,6 @@ const initRoom = function (roomName) {
     const room = websocket.joinRoom(roomName)
     const universal = websocket.joinRoom('universal')
 
-    websocket.setReconnectionInterval(2000);
-
     websocket.onOpen(() => {
         setConnectivityStatus('connected')
         console.log('ws connection opened')
@@ -108,11 +106,6 @@ const initRoom = function (roomName) {
     websocket.onReconnecting(() => {
         setConnectivityStatus('reconnecting')
         console.log('recovering ws connection...')
-    });
-
-    websocket.onClose(() => {
-        console.log('error occurred with ws connection')
-        setConnectivityStatus('error')
     });
 
     websocket.onClose(() => {
