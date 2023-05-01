@@ -89,7 +89,7 @@ const makeMessage = function (user, message, isSystemMessage = false) {
 const initRoom = function (roomName) {
     setConnectivityStatus('connecting');
 
-    document.getElementById('messages-container').style.height = ((window.outerHeight/100) * 56) + 'px'
+    document.getElementById('messages-container').style.height = ((window.outerHeight/100) * 55) + 'px'
 
     const websocket = RTC_Websocket.create(`${getCookie('ws_client_url')}/ws/chat`, [], {
         username: document.querySelector('input[name="username"]').value
