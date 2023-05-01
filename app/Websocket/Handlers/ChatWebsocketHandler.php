@@ -28,7 +28,7 @@ class ChatWebsocketHandler extends WebsocketHandler
 
     public function onEvent(ConnectionInterface $connection, EventInterface $event): void
     {
-        $this->console->comment("Event: {$event->getEvent()} -> {$event->getFrame()->getRaw()}");
+        $this->console->comment("Event: {$event->getName()} -> {$event->getFrame()->getRaw()}");
     }
 
     public function onMessage(ConnectionInterface $connection, FrameInterface $frame): void
