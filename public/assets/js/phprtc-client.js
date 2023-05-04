@@ -100,6 +100,7 @@ var RTC_Websocket = /** @class */ (function () {
         this.reconnectionInterval = 5000;
         this.connectionState = 'standby';
         this.willReconnect = true;
+        this.canReconnect = true;
         this.defaultAuthToken = null;
         this.rooms = [];
         this.pingPongInterval = 20000;
@@ -112,6 +113,13 @@ var RTC_Websocket = /** @class */ (function () {
                 _this.eventEmitter.dispatch('event', [event]);
                 // Dispatch filtered event event
                 _this.eventEmitter.dispatch('event.' + event.event, [event]);
+                // Handle server intentional disconnection
+                if (event.event === 'conn.rejected') {
+                    _this.stopPingPong();
+                    _this.stopReconnectionTimeout();
+                    _this.canReconnect = false;
+                    _this.log("Server rejected connection: ".concat(_this.wsUri, ".\nReason: ").concat(event.data.reason));
+                }
                 // Handle Room Events
                 if (event.receiver.type === 'room') {
                     for (var i = 0; i < _this.rooms.length; i++) {
@@ -208,6 +216,10 @@ var RTC_Websocket = /** @class */ (function () {
     };
     RTC_Websocket.prototype.setPingPongInterval = function (ms) {
         this.pingPongInterval = ms;
+        this.stopPingPong();
+        if (this.isOpened()) {
+            this.startPingPong();
+        }
         return this;
     };
     /**
@@ -324,9 +336,11 @@ var RTC_Websocket = /** @class */ (function () {
      */
     RTC_Websocket.prototype.reconnect = function () {
         var _this = this;
-        this.closeConnection(true);
-        if (this.reconnectionInterval) {
-            this.reconnectionTimeout = setTimeout(function () { return _this.createSocket(true); }, this.reconnectionInterval);
+        if (this.canReconnect) {
+            this.closeConnection(true);
+            if (this.reconnectionInterval) {
+                this.reconnectionTimeout = setTimeout(function () { return _this.createSocket(true); }, this.reconnectionInterval);
+            }
         }
     };
     ;
@@ -346,9 +360,9 @@ var RTC_Websocket = /** @class */ (function () {
      */
     RTC_Websocket.prototype.close = function () {
         this.willReconnect = false;
+        this.stopPingPong();
+        this.stopReconnectionTimeout();
         this.closeConnection(false);
-        clearTimeout(this.reconnectionTimeout);
-        this.clearPingPongInterval();
         this.eventEmitter.dispatch('custom.disconnect');
     };
     ;
@@ -382,7 +396,7 @@ var RTC_Websocket = /** @class */ (function () {
                 //Send message when connection is recovered
             }
             else {
-                _this.log('Your message will be sent when server connection is recovered!');
+                _this.log("Your message will be sent when server connection is recovered, server:".concat(_this.wsUri));
                 _this.eventEmitter.once('open', function () {
                     try {
                         _this.websocket.send(event);
@@ -400,8 +414,20 @@ var RTC_Websocket = /** @class */ (function () {
         console.log(message);
     };
     ;
-    RTC_Websocket.prototype.clearPingPongInterval = function () {
+    RTC_Websocket.prototype.startPingPong = function () {
+        var _this = this;
+        this.pingPongIntervalTimer = setInterval(function () {
+            _this.send('ping', { message: 'ping' }, {
+                type: 'system',
+                id: 'system'
+            });
+        }, this.pingPongInterval);
+    };
+    RTC_Websocket.prototype.stopPingPong = function () {
         clearInterval(this.pingPongIntervalTimer);
+    };
+    RTC_Websocket.prototype.stopReconnectionTimeout = function () {
+        clearTimeout(this.reconnectionTimeout);
     };
     RTC_Websocket.prototype.changeState = function (stateName, event) {
         this.connectionState = stateName;
@@ -439,7 +465,7 @@ var RTC_Websocket = /** @class */ (function () {
     RTC_Websocket.prototype.createSocket = function (isReconnecting) {
         var _this = this;
         if (isReconnecting === void 0) { isReconnecting = false; }
-        if (true === isReconnecting) {
+        if (isReconnecting) {
             this.connectionState = 'reconnecting';
             this.eventEmitter.dispatch('reconnecting');
         }
@@ -464,12 +490,7 @@ var RTC_Websocket = /** @class */ (function () {
                 _this.eventEmitter.dispatch('reconnect');
             }
             // Ping pong
-            _this.pingPongIntervalTimer = setInterval(function () {
-                _this.send('ping', { message: 'ping' }, {
-                    type: 'system',
-                    id: 'system'
-                });
-            }, _this.pingPongInterval);
+            _this.startPingPong();
             _this.changeState('open', args);
         });
         this.websocket.addEventListener('message', function (e) {
@@ -492,7 +513,7 @@ var RTC_Websocket = /** @class */ (function () {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            _this.clearPingPongInterval();
+            _this.stopPingPong();
             _this.changeState('close', args);
         });
         this.websocket.addEventListener('error', function () {
