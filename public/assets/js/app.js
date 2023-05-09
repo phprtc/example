@@ -33,12 +33,16 @@ const setConnectivityStatus = function (status) {
 }
 
 const setTypingStatus = function (status, username, connId) {
+    const elTypingStatus = document.getElementById(`typing-status-${connId}`)
+
+    if (!elTypingStatus) return;
+
     switch (status) {
         case 'typing':
-            document.getElementById(`typing-status-${connId}`).style.display = 'block';
+            elTypingStatus.style.display = 'block';
             break;
         case 'stop':
-            document.getElementById(`typing-status-${connId}`).style.display = 'none';
+            elTypingStatus.style.display = 'none';
     }
 }
 
@@ -99,7 +103,7 @@ const makeMessage = function (user, message, isSystemMessage = false) {
                     <div class="ms-2 me-auto">
                       ${body}
                     </div>
-                    <small class="fst-italic">${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}</small>
+                    <small class="fst-italic">${date.toLocaleTimeString()} ${date.toLocaleDateString()}</small>
                 </div>
             `
 }
@@ -138,7 +142,13 @@ const initRoom = function (roomName) {
         my_sid = e.data.sid
     })
 
-    websocket.onMessage(message => console.log(message));
+    websocket.onMessage(event => {
+        if (event.event === 'typing') {
+            return;
+        }
+
+        console.log(event)
+    });
 
     websocket.onEvent('aloha', e => {
         processMessage(e, e.data.message)
