@@ -44,7 +44,7 @@ class ChatWebsocketHandler extends WebsocketHandler
         $this->addConnection($connection);
 
         $connection->send(
-            event: 'welcome',
+            event: 'aloha',
             data: [
                 'message' => sprintf('Welcome,<br/>This server has been running since <b>%s</b>.', $this->startDate)
             ]

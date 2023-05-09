@@ -75,6 +75,16 @@
 
 <div class="m-3">
     <div class="row d-flex justify-content-center mt-3" id="block-message" style="display: none!important;">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <div>Users In Room</div>
+                </div>
+                <div class="card-body">
+                    <div id="connection-list" class="messages-container list-group"></div>
+                </div>
+            </div>
+        </div>
         <div class="col-md-5">
             <div class="card">
                 <div class="card-header d-flex justify-content-between">
@@ -82,7 +92,7 @@
                     <div id="connectivity-status"></div>
                 </div>
                 <div class="card-body">
-                    <div id="messages-container" class="messages-container" style="height: 90%!important;">
+                    <div id="messages-container" class="messages-container">
                         <div class="list-group list-group-flush mb-3" id="chat-messages"
                              style="height: 150px!important;"></div>
                     </div>

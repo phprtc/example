@@ -33,16 +33,34 @@ const setConnectivityStatus = function (status) {
 }
 
 const setTypingStatus = function (status, username, connId) {
-    const elTypingStatus = document.getElementById('typing-status')
     switch (status) {
         case 'typing':
-            elTypingStatus.innerHTML = `
-                    <small class="text-primary ts ts-${connId}"><i>${username} is typing</i><span class="typing"></span></small>
-                `;
+            document.getElementById(`typing-status-${connId}`).style.display = 'block';
             break;
         case 'stop':
-            document.querySelector(`.ts.ts-${connId}`)?.remove()
+            document.getElementById(`typing-status-${connId}`).style.display = 'none';
     }
+}
+
+const addUserToTab = function (sid, name) {
+    const el = document.createElement('div')
+    el.classList.add('list-group-item', 'me-2')
+    el.id = `sid-${sid}`
+    el.innerHTML = `
+        <div class="row">
+            <div class="col-md-1">
+                <img style="height: 25px; width: 25px" src="/assets/images/gender-neutral-avatar.jpg" alt="" class="">
+            </div>
+            <div class="col-md-8" style="margin-top: 2px">
+                ${name}
+                <div>
+                    <small  id="typing-status-${sid}" class="text-success" style="display: none">typing...</small>
+                </div>
+            </div>
+        </div>
+    `
+
+    document.getElementById('connection-list').appendChild(el)
 }
 
 const processMessage = function (event, customMessage = null) {
@@ -89,6 +107,7 @@ const makeMessage = function (user, message, isSystemMessage = false) {
 const initRoom = function (roomName) {
     setConnectivityStatus('connecting');
 
+    document.getElementById('connection-list').style.height = ((window.outerHeight / 100) * 50) + 'px'
     document.getElementById('messages-container').style.height = ((window.outerHeight / 100) * 50) + 'px'
 
     const websocket = RTC_Websocket.create(`${getCookie('ws_client_url')}/ws/chat`, [], {
@@ -97,6 +116,8 @@ const initRoom = function (roomName) {
 
     const room = websocket.joinRoom(roomName)
     const universal = websocket.joinRoom('universal')
+    let connections = {}
+    let my_sid;
 
     websocket.onOpen(() => {
         setConnectivityStatus('connected')
@@ -113,21 +134,47 @@ const initRoom = function (roomName) {
         setConnectivityStatus('disconnected')
     });
 
+    websocket.onEvent('welcome', e => {
+        my_sid = e.data.sid
+    })
+
     websocket.onMessage(message => console.log(message));
 
-    websocket.onEvent('welcome', e => processMessage(e, e.data.message));
+    websocket.onEvent('aloha', e => {
+        processMessage(e, e.data.message)
+    });
 
-    room.on('joined', e => processMessage(e, 'room joined successfully'));
-    room.on('user_left', e => processMessage(e, 'left this room'));
-    room.on('user_joined', e => processMessage(e, 'joined this room'));
+    room.onJoined(e => {
+        processMessage(e, 'room joined successfully')
+        room.send('room_list_connections', [])
+    });
 
-    room.on('typing', event => {
+    room.onUserJoined(e => {
+        addUserToTab(e.meta.user_sid, e.meta.user_info.username)
+        processMessage(e, 'joined this room')
+    });
+
+    room.onUserLeft(e => {
+        processMessage(e, 'left this room')
+        document.getElementById(`sid-${e.meta.user_sid}`)?.remove()
+    });
+
+    websocket.onEvent('room_connections', e => {
+        for (const sid in e.data) {
+            if (parseInt(sid) !== my_sid) {
+                const conn = connections[sid] = JSON.parse(e.data[sid])
+                addUserToTab(sid, conn.username)
+            }
+        }
+    })
+
+    room.on('typing', function (event) {
         setTypingStatus('stop', null, event.sender.id)
         setTypingStatus('typing', event.sender.info.username, event.sender.id)
         setTimeout(() => setTypingStatus('stop', null, event.sender.id), 1000)
     });
 
-    room.on('message', function (event) {
+    room.onMessage(function (event) {
         const user_name = event.sender.info
             ? event.sender.info.username
             : 'You';
@@ -153,7 +200,7 @@ const initRoom = function (roomName) {
         const message = textarea.value
         textarea.value = ''
 
-        room.send('message', message);
+        room.sendMessage(message);
     }
 }
 

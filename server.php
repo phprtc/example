@@ -11,7 +11,15 @@ require __DIR__ . '/vendor/autoload.php';
 $env = Dotenv::createImmutable(__DIR__)->load();
 
 try {
-    $server = Server::create(strval($env['SERVER_HOST']), intval($env['SERVER_PORT']))
+    $server = new Server(
+        host: strval($env['SERVER_HOST']),
+        port: intval($env['SERVER_PORT']),
+        size: intval($env['SERVER_WS_CONNECTION_SIZE']),
+        heartbeatInterval: intval($env['SERVER_WS_HEARTBEAT_INTERVAL']),
+        clientTimeout: intval($env['SERVER_WS_CLIENT_TIMEOUT'])
+    );
+
+    $server
         ->setDocumentRoot(__DIR__ . '/public')
         ->setPidFile(__DIR__ . '/.pid')
         ->setHttpKernel(HttpKernel::class)
