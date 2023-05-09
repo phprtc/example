@@ -67,6 +67,10 @@ const addUserToTab = function (sid, name) {
     document.getElementById('connection-list').appendChild(el)
 }
 
+const refreshConnectionList = function () {
+    document.getElementById('connection-list').innerHTML = ''
+}
+
 const processMessage = function (event, customMessage = null) {
     const user_name = event.meta.user_info
         ? event.meta.user_info.username
@@ -156,6 +160,7 @@ const initRoom = function (roomName) {
 
     room.onJoined(e => {
         processMessage(e, 'room joined successfully')
+        refreshConnectionList()
         room.send('room_list_connections', [])
     });
 
