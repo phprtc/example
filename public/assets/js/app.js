@@ -215,7 +215,7 @@ const initRoom = function (roomName) {
         const message = textarea.value
         textarea.value = ''
 
-        room.sendMessage(message);
+        room.sendMessage({message});
     }
 }
 
